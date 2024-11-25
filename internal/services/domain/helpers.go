@@ -266,3 +266,216 @@ func mapToStruct(data map[string]interface{}, target interface{}) {
 		}
 	}
 }
+
+func extractDomainFromID(id string) (string, error) {
+	parts := strings.Split(id, "/")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid ID format, expected 'projectID/domainName', got: %s", id)
+	}
+	return parts[1], nil
+}
+
+func flattenContact(contact *domain.Contact) map[string]interface{} {
+	if contact == nil {
+		return nil
+	}
+
+	flattened := map[string]interface{}{
+		"phone_number":                contact.PhoneNumber,
+		"legal_form":                  string(contact.LegalForm),
+		"firstname":                   contact.Firstname,
+		"lastname":                    contact.Lastname,
+		"email":                       contact.Email,
+		"address_line_1":              contact.AddressLine1,
+		"zip":                         contact.Zip,
+		"city":                        contact.City,
+		"country":                     contact.Country,
+		"company_name":                contact.CompanyName,
+		"email_alt":                   contact.EmailAlt,
+		"fax_number":                  contact.FaxNumber,
+		"address_line_2":              contact.AddressLine2,
+		"vat_identification_code":     contact.VatIDentificationCode,
+		"company_identification_code": contact.CompanyIDentificationCode,
+		"lang":                        string(contact.Lang),
+		"resale":                      contact.Resale,
+		"state":                       contact.State,
+		"whois_opt_in":                contact.WhoisOptIn,
+	}
+
+	if contact.ExtensionFr != nil {
+		flattened["extension_fr"] = flattenContactExtensionFR(contact.ExtensionFr)
+	}
+	if contact.ExtensionEu != nil {
+		flattened["extension_eu"] = flattenContactExtensionEU(contact.ExtensionEu)
+	}
+	if contact.ExtensionNl != nil {
+		flattened["extension_nl"] = flattenContactExtensionNL(contact.ExtensionNl)
+	}
+
+	return flattened
+}
+
+func flattenContactExtensionFR(ext *domain.ContactExtensionFR) map[string]interface{} {
+	if ext == nil {
+		return nil
+	}
+
+	return map[string]interface{}{
+		"mode":                 string(ext.Mode),
+		"individual_info":      flattenContactExtensionFRIndividualInfo(ext.IndividualInfo),
+		"duns_info":            flattenContactExtensionFRDunsInfo(ext.DunsInfo),
+		"association_info":     flattenContactExtensionFRAssociationInfo(ext.AssociationInfo),
+		"trademark_info":       flattenContactExtensionFRTrademarkInfo(ext.TrademarkInfo),
+		"code_auth_afnic_info": flattenContactExtensionFRCodeAuthAfnicInfo(ext.CodeAuthAfnicInfo),
+	}
+}
+
+func flattenContactExtensionFRIndividualInfo(info *domain.ContactExtensionFRIndividualInfo) map[string]interface{} {
+	if info == nil {
+		return nil
+	}
+	return map[string]interface{}{
+		"whois_opt_in": info.WhoisOptIn,
+	}
+}
+
+func flattenContactExtensionFRDunsInfo(info *domain.ContactExtensionFRDunsInfo) map[string]interface{} {
+	if info == nil {
+		return nil
+	}
+	return map[string]interface{}{
+		"duns_id":  info.DunsID,
+		"local_id": info.LocalID,
+	}
+}
+
+func flattenContactExtensionFRAssociationInfo(info *domain.ContactExtensionFRAssociationInfo) map[string]interface{} {
+	if info == nil {
+		return nil
+	}
+	return map[string]interface{}{
+		"publication_jo":      info.PublicationJo.Format(time.RFC3339),
+		"publication_jo_page": info.PublicationJoPage,
+	}
+}
+
+func flattenContactExtensionFRTrademarkInfo(info *domain.ContactExtensionFRTrademarkInfo) map[string]interface{} {
+	if info == nil {
+		return nil
+	}
+	return map[string]interface{}{
+		"trademark_inpi": info.TrademarkInpi,
+	}
+}
+
+func flattenContactExtensionFRCodeAuthAfnicInfo(info *domain.ContactExtensionFRCodeAuthAfnicInfo) map[string]interface{} {
+	if info == nil {
+		return nil
+	}
+	return map[string]interface{}{
+		"code_auth_afnic": info.CodeAuthAfnic,
+	}
+}
+
+func flattenContactExtensionEU(ext *domain.ContactExtensionEU) map[string]interface{} {
+	if ext == nil {
+		return nil
+	}
+
+	return map[string]interface{}{
+		"european_citizenship": ext.EuropeanCitizenship,
+	}
+}
+
+func flattenContactExtensionNL(ext *domain.ContactExtensionNL) map[string]interface{} {
+	if ext == nil {
+		return nil
+	}
+
+	return map[string]interface{}{
+		"legal_form":                     string(ext.LegalForm),
+		"legal_form_registration_number": ext.LegalFormRegistrationNumber,
+	}
+}
+
+func flattenTLD(tld *domain.Tld) map[string]interface{} {
+	if tld == nil {
+		return nil
+	}
+
+	return map[string]interface{}{
+		"name":                  tld.Name,
+		"dnssec_support":        tld.DnssecSupport,
+		"duration_in_years_min": tld.DurationInYearsMin,
+		"duration_in_years_max": tld.DurationInYearsMax,
+		"idn_support":           tld.IDnSupport,
+		"offers":                flattenTldOffers(tld.Offers),
+		"specifications":        tld.Specifications,
+	}
+}
+
+func flattenTldOffers(offers map[string]*domain.TldOffer) map[string]interface{} {
+	if offers == nil {
+		return nil
+	}
+
+	flattenedOffers := make(map[string]interface{})
+	for key, offer := range offers {
+		flattenedOffers[key] = map[string]interface{}{
+			"action":         offer.Action,
+			"operation_path": offer.OperationPath,
+			"price": map[string]interface{}{
+				"currency_code": offer.Price.CurrencyCode,
+				"units":         offer.Price.Units,
+				"nanos":         offer.Price.Nanos,
+			},
+		}
+	}
+
+	return flattenedOffers
+}
+
+func flattenExternalDomainRegistrationStatus(status *domain.DomainRegistrationStatusExternalDomain) map[string]interface{} {
+	if status == nil {
+		return nil
+	}
+
+	return map[string]interface{}{
+		"validation_token": status.ValidationToken,
+	}
+}
+
+func flattenDNSZones(dnsZones []*domain.DNSZone) []map[string]interface{} {
+	if dnsZones == nil {
+		return nil
+	}
+
+	var zones []map[string]interface{}
+	for _, zone := range dnsZones {
+		zones = append(zones, map[string]interface{}{
+			"domain":     zone.Domain,
+			"subdomain":  zone.Subdomain,
+			"ns":         zone.Ns,
+			"ns_default": zone.NsDefault,
+			"ns_master":  zone.NsMaster,
+			"status":     zone.Status,
+			"message":    zone.Message,
+			"updated_at": zone.UpdatedAt.Format(time.RFC3339),
+			"project_id": zone.ProjectID,
+		})
+	}
+
+	return zones
+}
+
+func flattenDomainRegistrationStatusTransfer(transferStatus *domain.DomainRegistrationStatusTransfer) map[string]interface{} {
+	if transferStatus == nil {
+		return nil
+	}
+
+	return map[string]interface{}{
+		"status":             string(transferStatus.Status),
+		"vote_current_owner": transferStatus.VoteCurrentOwner,
+		"vote_new_owner":     transferStatus.VoteNewOwner,
+	}
+}
